@@ -66,10 +66,14 @@ class _PaginaInicialState extends State<PaginaInicial> {
 
   @override
   Widget build(BuildContext context) {
-    String _formattedate = new DateFormat.yMd().format(_currentdate);
-    //String _year = new DateFormat.y().format(_currentdate);
-    //String _month = new DateFormat.M().format(_currentdate);
-    //String _day = new DateFormat.d().format(_currentdate);
+    String _mesNome = new DateFormat.MMMM().format(_currentdate);
+    String _year = new DateFormat.y().format(_currentdate);
+    String _month = new DateFormat.M().format(_currentdate);
+    if (_month.length < 2) {
+      _month = '0$_month';
+    }
+    String _day = new DateFormat.d().format(_currentdate);
+    String _dateSearch = '$_year-$_month-$_day';
     //_formattedate = _formattedate.replaceAll('/', '-');
     return new Scaffold(
       appBar: new AppBar(
@@ -90,10 +94,7 @@ class _PaginaInicialState extends State<PaginaInicial> {
             ListTile(
               title: Text(
                 'Escolher Data',
-                style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 15,
-                    fontWeight: FontWeight.bold),
+                style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
               ),
             )
           ],
@@ -105,17 +106,6 @@ class _PaginaInicialState extends State<PaginaInicial> {
             'images/market.jpg',
             fit: BoxFit.cover,
             height: 1000.0,
-          ),
-          Align(
-            child: Text(
-              'Data: $_formattedate',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 17,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            alignment: Alignment.topCenter,
           ),
           Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -190,18 +180,35 @@ class _PaginaInicialState extends State<PaginaInicial> {
                             ],
                           );
                         }
+                        if (snapshot.data["Time Series (Daily)"]
+                                ['$_dateSearch'] ==
+                            null) {
+                          return Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: <Widget>[
+                              Text(
+                                "Data inválida, tente novamente...",
+                                style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 20,
+                                    color: Colors.red),
+                              ),
+                            ],
+                          );
+                        }
+
                         _name = snapshot.data["Meta Data"]["2. Symbol"];
                         _abertura = double.parse(
-                            snapshot.data["Time Series (Daily)"]["2019-12-06"]
+                            snapshot.data["Time Series (Daily)"]['$_dateSearch']
                                 ["1. open"]);
                         _alta = double.parse(
-                            snapshot.data["Time Series (Daily)"]["2019-12-06"]
+                            snapshot.data["Time Series (Daily)"]['$_dateSearch']
                                 ["2. high"]);
                         _baixa = double.parse(
-                            snapshot.data["Time Series (Daily)"]["2019-12-06"]
+                            snapshot.data["Time Series (Daily)"]['$_dateSearch']
                                 ["3. low"]);
                         _fechamento = double.parse(
-                            snapshot.data["Time Series (Daily)"]["2019-12-06"]
+                            snapshot.data["Time Series (Daily)"]['$_dateSearch']
                                 ["4. close"]);
                         _variacao = _getVariacao(_abertura, _fechamento);
 
@@ -216,7 +223,7 @@ class _PaginaInicialState extends State<PaginaInicial> {
                                 color: Colors.white,
                               ),
                             ),
-                            new Text(
+                            Text(
                               _variacao.toStringAsPrecision(3) + '%',
                               style: TextStyle(
                                 fontSize: 70,
@@ -225,7 +232,7 @@ class _PaginaInicialState extends State<PaginaInicial> {
                                     _variacao > 0 ? Colors.green : Colors.red,
                               ),
                             ),
-                            new Text(
+                            Text(
                               "Abertura: R\$ " + _abertura.toString(),
                               style: TextStyle(
                                 fontSize: 20,
@@ -233,7 +240,7 @@ class _PaginaInicialState extends State<PaginaInicial> {
                                 color: Colors.white,
                               ),
                             ),
-                            new Text(
+                            Text(
                               "Alta: R\$ " + _alta.toString(),
                               style: TextStyle(
                                 fontSize: 20,
@@ -241,7 +248,7 @@ class _PaginaInicialState extends State<PaginaInicial> {
                                 color: Colors.white,
                               ),
                             ),
-                            new Text(
+                            Text(
                               "Baixa: R\$ " + _baixa.toString(),
                               style: TextStyle(
                                 fontSize: 20,
@@ -249,13 +256,20 @@ class _PaginaInicialState extends State<PaginaInicial> {
                                 color: Colors.white,
                               ),
                             ),
-                            new Text(
+                            Text(
                               "Fechamento: R\$ " + _fechamento.toString(),
                               style: TextStyle(
                                 fontSize: 20,
                                 fontWeight: FontWeight.bold,
                                 color: Colors.white,
                               ),
+                            ),
+                            Text(
+                              'Data: $_day de $_mesNome de $_year',
+                              style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white),
                             ),
                           ],
                         );
