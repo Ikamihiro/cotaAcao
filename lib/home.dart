@@ -6,7 +6,6 @@ import './components/waiting_container.dart';
 import './components/not_found.dart';
 import './components/invalid_date.dart';
 import './components/results_found.dart';
-import './components/backgroung_image.dart';
 
 class PaginaInicial extends StatefulWidget {
   @override
