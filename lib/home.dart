@@ -2,6 +2,11 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
+import './components/waiting_container.dart';
+import './components/not_found.dart';
+import './components/invalid_date.dart';
+import './components/results_found.dart';
+import './components/backgroung_image.dart';
 
 class PaginaInicial extends StatefulWidget {
   @override
@@ -74,6 +79,7 @@ class _PaginaInicialState extends State<PaginaInicial> {
     }
     String _day = new DateFormat.d().format(_currentdate);
     String _dateSearch = '$_year-$_month-$_day';
+    var _opcoes = [''];
     //_formattedate = _formattedate.replaceAll('/', '-');
     return new Scaffold(
       appBar: new AppBar(
@@ -90,14 +96,7 @@ class _PaginaInicialState extends State<PaginaInicial> {
       ),
       drawer: Drawer(
         child: ListView(
-          children: <Widget>[
-            ListTile(
-              title: Text(
-                'Escolher Data',
-                style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
-              ),
-            )
-          ],
+          children: <Widget>[],
         ),
       ),
       body: new Stack(
@@ -110,9 +109,15 @@ class _PaginaInicialState extends State<PaginaInicial> {
           Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: <Widget>[
-              new Padding(
-                padding: new EdgeInsets.all(10),
-                child: new TextField(
+              Padding(
+                padding: EdgeInsets.all(10),
+                child: Column(
+                  children: <Widget>[],
+                ),
+              ),
+              Padding(
+                padding: EdgeInsets.all(10),
+                child: TextField(
                   textCapitalization: TextCapitalization.sentences,
                   decoration: InputDecoration(
                       labelText: 'Pesquise aqui',
@@ -130,71 +135,26 @@ class _PaginaInicialState extends State<PaginaInicial> {
                   },
                 ),
               ),
-              new Expanded(
+              Expanded(
                 child: FutureBuilder(
                   future: _getStockPrice(),
                   builder: (context, snapshot) {
                     switch (snapshot.connectionState) {
                       case ConnectionState.waiting:
                       case ConnectionState.none:
-                        return Container(
-                          width: 200.0,
-                          height: 200.0,
-                          alignment: Alignment.center,
-                          child: CircularProgressIndicator(
-                            valueColor:
-                                AlwaysStoppedAnimation<Color>(Colors.white),
-                            strokeWidth: 5.0,
-                          ),
-                        );
+                        return WaitingContainer();
                       default:
                         if (snapshot.data["Error Message"] != null ||
                             !snapshot.hasData) {
-                          return Column(
-                            mainAxisAlignment: MainAxisAlignment.start,
-                            children: <Widget>[
-                              Text(
-                                _pesquisa,
-                                style: TextStyle(
-                                  fontSize: 60,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                ),
-                              ),
-                              Text(
-                                'Nada encontrado!',
-                                style: TextStyle(
-                                  fontSize: 30,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.red,
-                                ),
-                              ),
-                              Text(
-                                'Tente novamente...',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ],
+                          return NotFound(
+                            pesquisa: _pesquisa,
                           );
                         }
+
                         if (snapshot.data["Time Series (Daily)"]
                                 ['$_dateSearch'] ==
                             null) {
-                          return Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: <Widget>[
-                              Text(
-                                "Data inválida, tente novamente...",
-                                style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 20,
-                                    color: Colors.red),
-                              ),
-                            ],
-                          );
+                          return InvalidDate();
                         }
 
                         _name = snapshot.data["Meta Data"]["2. Symbol"];
@@ -212,66 +172,16 @@ class _PaginaInicialState extends State<PaginaInicial> {
                                 ["4. close"]);
                         _variacao = _getVariacao(_abertura, _fechamento);
 
-                        return Column(
-                          mainAxisAlignment: MainAxisAlignment.start,
-                          children: <Widget>[
-                            Text(
-                              _name,
-                              style: TextStyle(
-                                fontSize: 60,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                              ),
-                            ),
-                            Text(
-                              _variacao.toStringAsPrecision(3) + '%',
-                              style: TextStyle(
-                                fontSize: 70,
-                                fontWeight: FontWeight.bold,
-                                color:
-                                    _variacao > 0 ? Colors.green : Colors.red,
-                              ),
-                            ),
-                            Text(
-                              "Abertura: R\$ " + _abertura.toString(),
-                              style: TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                              ),
-                            ),
-                            Text(
-                              "Alta: R\$ " + _alta.toString(),
-                              style: TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                              ),
-                            ),
-                            Text(
-                              "Baixa: R\$ " + _baixa.toString(),
-                              style: TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                              ),
-                            ),
-                            Text(
-                              "Fechamento: R\$ " + _fechamento.toString(),
-                              style: TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                              ),
-                            ),
-                            Text(
-                              'Data: $_day de $_mesNome de $_year',
-                              style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white),
-                            ),
-                          ],
+                        return ResultsFound(
+                          abertura: _abertura,
+                          alta: _alta,
+                          baixa: _baixa,
+                          day: _day,
+                          fechamento: _fechamento,
+                          mesNome: _mesNome,
+                          name: _name,
+                          variacao: _variacao,
+                          year: _year,
                         );
                     }
                   },
