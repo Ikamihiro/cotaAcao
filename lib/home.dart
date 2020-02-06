@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -7,16 +8,39 @@ import './components/not_found.dart';
 import './components/invalid_date.dart';
 import './components/results_found.dart';
 
+const TIMES_DAY = "TIME_SERIES_DAILY";
+const TIMES_INTRADAY = "TIME_SERIES_INTRADAY";
+const TIMES_WEEK = "TIME_SERIES_WEEKLY";
+const TIMES_MOMTH = "TIME_SERIES_MONTHLY";
+
 class PaginaInicial extends StatefulWidget {
   @override
   _PaginaInicialState createState() => new _PaginaInicialState();
 }
 
 class _PaginaInicialState extends State<PaginaInicial> {
+  String _data_key = "Time Series (Daily)";
+  bool realTime = false, diario = true, semanal = false, mensal = false;
+  int _index = 1;
   String _pesquisa, _name;
   double _variacao, _abertura, _fechamento, _alta, _baixa;
 
   DateTime _currentdate = new DateTime.now();
+
+  String gerarUrl(String _pesquisa) {
+    if (diario == true) {
+      return "https://www.alphavantage.co/query?function=$TIMES_DAY&symbol=$_pesquisa&apikey=0H4TALABSPUCEGZN";
+    }
+    if (realTime == true) {
+      return "https://www.alphavantage.co/query?function=$TIMES_INTRADAY&symbol=$_pesquisa&interval=5min&apikey=0H4TALABSPUCEGZN";
+    }
+    if (semanal == true) {
+      return "https://www.alphavantage.co/query?function=$TIMES_WEEK&symbol=$_pesquisa&apikey=0H4TALABSPUCEGZN";
+    }
+    if (mensal == true) {
+      return "https://www.alphavantage.co/query?function=$TIMES_MOMTH&symbol=$_pesquisa&apikey=0H4TALABSPUCEGZN";
+    }
+  }
 
   Future<Null> _selectdate(BuildContext context) async {
     final DateTime _seldate = await showDatePicker(
@@ -38,17 +62,39 @@ class _PaginaInicialState extends State<PaginaInicial> {
   }
 
   Future<Map> _getStockPrice() async {
+    String url;
     http.Response response;
+
     if (_pesquisa == null || _pesquisa.isEmpty) {
-      response = await http.get(
-          "https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=^BVSP&apikey=0H4TALABSPUCEGZN");
+      _pesquisa = "^BVSP";
+      url = gerarUrl(_pesquisa);
+      if (realTime == true) {
+        response = await http.get(url);
+        Timer.periodic(Duration(minutes: 5), (Timer timer) {
+          setState(() {
+            realTime = true;
+          });
+        });
+      } else {
+        response = await http.get(url);
+      }
       if (response.statusCode == 200)
         return json.decode(response.body);
       else
         throw Exception;
     } else {
-      response = await http.get(
-          "https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=$_pesquisa.SAO&apikey=0H4TALABSPUCEGZN");
+      if (_pesquisa.length <= 5) _pesquisa = '$_pesquisa.SAO';
+      url = gerarUrl(_pesquisa);
+      if (realTime == true) {
+        response = await http.get(url);
+        Timer.periodic(Duration(minutes: 5), (Timer timer) {
+          setState(() {
+            realTime = true;
+          });
+        });
+      } else {
+        response = await http.get(url);
+      }
       if (response.statusCode == 200)
         return json.decode(response.body);
       else
@@ -59,8 +105,36 @@ class _PaginaInicialState extends State<PaginaInicial> {
   @override
   void initState() {
     super.initState();
-    _getStockPrice().then((map) {
-      print(map);
+  }
+
+  void onTabTapped(int index) {
+    setState(() {
+      _index = index;
+      if (_index == 0) {
+        diario = false;
+        realTime = true;
+        semanal = false;
+        mensal = false;
+        _data_key = "Time Series (5min)";
+      } else if (_index == 1) {
+        diario = true;
+        realTime = false;
+        semanal = false;
+        mensal = false;
+        _data_key = "Time Series (Daily)";
+      } else if (_index == 2) {
+        diario = false;
+        realTime = false;
+        semanal = true;
+        mensal = false;
+        _data_key = "Weekly Time Series";
+      } else if (_index == 3) {
+        diario = false;
+        realTime = false;
+        semanal = false;
+        mensal = true;
+        _data_key = "Monthly Time Series";
+      }
     });
   }
 
@@ -77,9 +151,11 @@ class _PaginaInicialState extends State<PaginaInicial> {
       _month = '0$_month';
     }
     String _day = new DateFormat.d().format(_currentdate);
+    if (_day.length < 2) {
+      _day = '0$_day';
+    }
     String _dateSearch = '$_year-$_month-$_day';
-    var _opcoes = [''];
-    //_formattedate = _formattedate.replaceAll('/', '-');
+
     return new Scaffold(
       appBar: new AppBar(
         backgroundColor: Colors.black,
@@ -93,10 +169,52 @@ class _PaginaInicialState extends State<PaginaInicial> {
           )
         ],
       ),
-      drawer: Drawer(
-        child: ListView(
-          children: <Widget>[],
-        ),
+      bottomNavigationBar: BottomNavigationBar(
+        onTap: onTabTapped,
+        currentIndex: _index,
+        backgroundColor: Colors.black,
+        items: [
+          BottomNavigationBarItem(
+            icon: Icon(
+              Icons.watch,
+              color: Colors.black,
+            ),
+            title: Text(
+              "Real Time",
+              style: TextStyle(color: Colors.black),
+            ),
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(
+              Icons.today,
+              color: Colors.black,
+            ),
+            title: Text(
+              "Diário",
+              style: TextStyle(color: Colors.black),
+            ),
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(
+              Icons.view_agenda,
+              color: Colors.black,
+            ),
+            title: Text(
+              "Semanal",
+              style: TextStyle(color: Colors.black),
+            ),
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(
+              Icons.calendar_today,
+              color: Colors.black,
+            ),
+            title: Text(
+              "Mensal",
+              style: TextStyle(color: Colors.black),
+            ),
+          ),
+        ],
       ),
       body: new Stack(
         children: <Widget>[
@@ -108,12 +226,6 @@ class _PaginaInicialState extends State<PaginaInicial> {
           Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: <Widget>[
-              Padding(
-                padding: EdgeInsets.all(10),
-                child: Column(
-                  children: <Widget>[],
-                ),
-              ),
               Padding(
                 padding: EdgeInsets.all(10),
                 child: TextField(
@@ -146,29 +258,31 @@ class _PaginaInicialState extends State<PaginaInicial> {
                         if (snapshot.data["Error Message"] != null ||
                             !snapshot.hasData) {
                           return NotFound(
-                            pesquisa: _pesquisa,
+                            pesquisa: _pesquisa.substring(0, 5),
                           );
                         }
 
-                        if (snapshot.data["Time Series (Daily)"]
-                                ['$_dateSearch'] ==
-                            null) {
-                          return InvalidDate();
+                        if (_data_key == "Time Series (5min)") {
+                          _dateSearch = snapshot.data[_data_key].keys.first;
                         }
 
-                        _name = snapshot.data["Meta Data"]["2. Symbol"];
+                        if (snapshot.data[_data_key][_dateSearch] == null) {
+                          return InvalidDate(
+                            dateSearch: _dateSearch,
+                          );
+                        }
+                        _name = snapshot.data['Meta Data']['2. Symbol'];
+                        if (_name.length > 5) {
+                          _name = _name.substring(0, 5);
+                        }
                         _abertura = double.parse(
-                            snapshot.data["Time Series (Daily)"]['$_dateSearch']
-                                ["1. open"]);
+                            snapshot.data[_data_key][_dateSearch]["1. open"]);
                         _alta = double.parse(
-                            snapshot.data["Time Series (Daily)"]['$_dateSearch']
-                                ["2. high"]);
+                            snapshot.data[_data_key][_dateSearch]["2. high"]);
                         _baixa = double.parse(
-                            snapshot.data["Time Series (Daily)"]['$_dateSearch']
-                                ["3. low"]);
+                            snapshot.data[_data_key][_dateSearch]["3. low"]);
                         _fechamento = double.parse(
-                            snapshot.data["Time Series (Daily)"]['$_dateSearch']
-                                ["4. close"]);
+                            snapshot.data[_data_key][_dateSearch]["4. close"]);
                         _variacao = _getVariacao(_abertura, _fechamento);
 
                         return ResultsFound(
